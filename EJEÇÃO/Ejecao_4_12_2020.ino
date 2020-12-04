@@ -1,5 +1,5 @@
 /*NOTA: 
-O código não foi testado e invoca funções de obtenção de valores dos sensores
+O código não foi testado e invoca funções que obtêm valores dos sensores
 Ainda nao pesquisei que biblitecas é que é suposto incluir
 Só uma tentativa para começar, podes alterar o que quiseres, estás à vontade
 3 formas diferentes para termos o maior numero de dados possiveis, ainda so me dediquei ao metodo 1 e não sei se há mais alguma forma pra criar redundância
