@@ -1,16 +1,6 @@
 #include <Wire.h>
 #include <math.h>
 
-//Calcula o modulo da aceleração 
-//return: 1 se modulo maior que 1, 0 se modulo inferior a 1     
-int accelModule(float AcXf, float AcYf, float AcZf) {
-  if (sqrt(pow(AcXf,2)+pow(AcYf,2)+pow(AcZf,2)) > 1) {
-    return 1; }
-  else {
-    return 0; } 
-}
-
-
 //Inicializção variáveis ejeção (Global variables)
   unsigned long startMillis; 
   unsigned long currentMillis;
@@ -27,6 +17,16 @@ int accelModule(float AcXf, float AcYf, float AcZf) {
 */
   //Pin Comunicação
   const int sendPin = 9; 
+
+
+//Calcula o modulo da aceleração 
+//return: 1 se modulo maior que 1, 0 se modulo inferior a 1     
+int accelModule(float AcXf, float AcYf, float AcZf) {
+  if (sqrt(pow(AcXf,2)+pow(AcYf,2)+pow(AcZf,2)) > 1) {
+    return 1; }
+  else {
+    return 0; } 
+}
 
 
 void loop() 
