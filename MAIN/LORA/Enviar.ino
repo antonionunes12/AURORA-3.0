@@ -1,14 +1,18 @@
-#include <SoftwareSerial.h>
+#include <NeoSWSerial.h>
 
-SoftwareSerial loraS(5,4);
-void setup() {
-  // put your setup code here, to run once:
+
+NeoSWSerial loraS(3,2);
+void setup() 
+{
 loraS.begin(9600);
+Serial.begin(9600);
 }
 
 void loop() {
 
-  loraS.write("Ola");
-  // put your main code here, to run repeatedly:
-delay(3000);
+    
+    if(digitalRead(4) != 0)                         
+    {   
+      loraS.print("\n Teste");
+    }
 }
