@@ -2,7 +2,7 @@
 #include <math.h>
 
 //Calcula o modulo da aceleração 
-//return: 1 se modulo maior que 3, 0 se modulo inferior a 3     
+//return: 1 se modulo maior que 1, 0 se modulo inferior a 1     
 int accelModule(float AcXf, float AcYf, float AcZf) {
   if (sqrt(pow(AcXf,2)+pow(AcYf,2)+pow(AcZf,2)) > 1) {
     return 1; }
