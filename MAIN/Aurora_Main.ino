@@ -1,55 +1,105 @@
 #include <Wire.h>
 #include <MPU6050.h>
 #include <math.h>
-#include <
+#include <NeoSWSerial.h>
+#include <TinyGPS++.h>
+#include <SPI.h>
+#include <SD.h>
+
+//Defines LORA
+
+#define loraRXD 3
+#define loraTXD 2
+#define loraaux 3
+
+//Defines GPS
+
+#define gpsRXD 8
+#define gpsTXD 9
+
+//Defines SD
+#define cardDetect 7
+#define chipSelect 6
+
+
+NeoSWSerial loraS(loraRXD,loraTXD);  // RXD, TXD  Ao contrário nos dispositivos
+NeoSWSerial gpsSerial(gpsRXD,gpsTXD);
+MPU6050 mpu;
+TinyGPSPlus gps;
 
 //Inicializção variáveis ejeção (Global variables)
-  unsigned long startMillis; 
-  unsigned long currentMillis;
-  const unsigned long period = 26800; //alterar periodo
-  unsigned long starttime=0;
-  int ejecao = 0;
-  int counter = 0;
-  int counter_acel = 0;
-  float AcXf,AcYf,AcZf;
-  
-  //Pin Comunicação
-  const int sendPin = 9; 
+unsigned long startMillis; 
+unsigned long currentMillis;
+const unsigned long period = 26800; //alterar periodo
+unsigned long starttime=0;
+int ejecao = 0;
+int counter = 0;
+int counter_acel = 0;
 
+//Endereço Ficheiro
+File ficheiro;
 
-void getAcel (&AcXf, &AcYf, &AcZf)
-{
-  
-  *AcXf = mpu.getAccelerationX() / 1024.0;
-  *AcYf = mpu.getAccelerationY() / 1024.0;
-  *AcZf = mpu.getAccelerationZ() / 1024.0;  
+//Pin Comunicação
+const int sendPin = 10; 
 
-}
+// Função InicializaAcel
+// Incializa as comunicações com o acelerômetro e calibra os offsets
+// O Acelarometro têm uma escala:
+// 0 = +-2G, 1 = +- 4G, 2  2 = +- 8g , 3 = +- 16g
 void inicializaAcel (void)
 {
   
- Wire.begin();
+ Wire.begin();  
  Wire.setClock(400000);
  mpu.initialize();
- mpu.setFullScaleAccelRange(3);
- mpu.setXAccelOffset(769);
+ mpu.setFullScaleAccelRange(3);                       // Ajusta a escala do acelarometro para 3 
+ mpu.setXAccelOffset(769);                            // Ajusta os offsets específicos ao nosso MPU
  mpu.setYAccelOffset(1115);
  mpu.setZAccelOffset(-1625);
   
 }
 
-void inicializaLora(void)
+//Função getAcel
+//Obtem-se os dados mais recentes do acelerômetro e guarda nas variáveis respetivas.
+//Para obter os dados em g's divide-se por uma sensibilidade dependendo da escala. *ver incializaACel
+//Sensibilidades:
+//0 ±2g 16384 LSB/g
+//1 ±4g 8192 LSB/g
+//2 ±8g 4096 LSB/g
+//3 ±16g 2048 LSB/g
+
+ void getAcel (float *AcXf, float *AcYf, float *AcZf )
 {
- loraS.begin(9600);
+   
+  *AcXf = mpu.getAccelerationX() / 2048.0;
+  *AcYf = mpu.getAccelerationY() / 2048.0;
+  *AcZf = mpu.getAccelerationZ() / 2048.0;
+    
+}
+//Função inicializaLora_gp 
+//Inicia a comunicção entre o arduino, o Lora e o gps
+//Envia uma mensagem de Teste
+
+void inicializaLora_gps(void)
+{
+  loraS.begin(9600);
+  pinMode(loraaux, INPUT);
+  gpsSerial.begin(9600);
+  enviaLora("Comunicações OK");
+  delay(1000);
 }
 
+//Função inicializaLora_gp 
+//Ordena o Lora a enviar o que está na string a_enviar
 void enviaLora(String a_enviar)
 {
-  if(digitalRead(4) != 0)                         
+  if(digitalRead(loraaux) != 0)      //define (pin 4)                   
    {   
       loraS.print(a_enviar);
    }
 }
+//Função gpsReadVals
+//Obtem as coordenadas atuais e guarda-as nas variáveis respetivas
 
 void gpsReadVals (double *latitude_val, double *longitude_val, double *altitude_val)
 {
@@ -66,12 +116,62 @@ void gpsReadVals (double *latitude_val, double *longitude_val, double *altitude_
       {
         start_time = millis();
         *latitude_val = gps.location.lat();
-        *longitute_val = gps.location.lng();
+        *longitude_val = gps.location.lng();
         *altitude_val = gps.altitude.meters();
         return;
       }
     }
   return;
+}
+
+//Função inicializaSD
+//Inicializa a comunicação com o módulo leitor de cartão SD e certifica-se que consegue escrever dados para o cartão.
+
+void inicializaSD(void)
+{
+  String nome = "Teste_0";                                  //Nome base do ficheiro
+  int numero = 0;
+  
+  pinMode(cardDetect, INPUT);                               //Bloqueia o Pino CardDetect do cartão SD no modo Input.
+  
+  enviaLora("A inicializar SD");  
+  while(!digitalRead(cardDetect))                           //Verifica se o  cartão está inserido no leitor.
+  {
+    enviaLora("ERRO - Cartão SD NÃO detetado");
+    delay(1000);
+  }
+  if(!SD.begin(chipSelect))
+  {
+            
+    enviaLora("Incialização Falhada! - A tentar outra vez");
+    inicializaSD();
+    return; 
+       
+   }
+   
+   while (SD.exists(nome))
+   {
+    nome = "Teste_";
+    ++numero;
+    nome = String(nome + numero); 
+   }
+   ficheiro = SD.open(nome, FILE_WRITE );
+   if(ficheiro)
+   {
+     ficheiro.println("----------------AURORA 3.0 - Inicio de Dados-----------------\n");
+     ficheiro.close();
+   }
+   else
+   {
+    while(1)
+    {
+    enviaLora("Erro a abrir o ficheiro");
+    }
+   }
+    
+  enviaLora("SD inicializado com Sucesso!");
+  delay(1000);
+  
 }
 
 
@@ -85,6 +185,14 @@ int accelModule(float AcXf, float AcYf, float AcZf) {
 }
 
 
+void setup()
+{
+  inicializaAcel();
+  inicializaLora_gps();
+  
+}
+
+
 void loop() 
 {
 
@@ -93,10 +201,6 @@ void loop()
   float AcYf = 0.00;
   float AcZf = 0.00;
   float modAc = 0.00;
-  //Valores Girosc
-  float GyXf = 0.00;
-  float GyYf = 0.00;
-  float GyZf = 0.00;
   //GPS
   double lati = 0.0000000;
   double longi = 0.0000000;
@@ -116,7 +220,7 @@ void loop()
   //Eliminar ruido, valores depois de serem filtrados pela forma canonica de kalman
 
   //valores guardados no cartao SD
-  guardaSD (AcXf, AcYf, AcZf, lati, longi, altitudeGps); //alterar consoante o que for utilizado (tempBMP, pressBMP, altBMP; alt_pressao)
+  //guardaSD (AcXf, AcYf, AcZf, lati, longi, altitudeGps); //alterar consoante o que for utilizado (tempBMP, pressBMP, altBMP; alt_pressao)
 
 
   /*Verifica se a duração do tempo de voo do rocket é superior ao período estimado*/
