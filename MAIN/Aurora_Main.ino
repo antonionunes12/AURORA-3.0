@@ -35,9 +35,7 @@ unsigned long starttime=0;
 int ejecao = 0;
 int counter = 0;
 int counter_acel = 0;
-
-//Endereço Ficheiro
-File ficheiro;
+String nome_ficheiro;
 
 //Pin Comunicação
 const int sendPin = 10; 
@@ -127,10 +125,11 @@ void gpsReadVals (double *latitude_val, double *longitude_val, double *altitude_
 //Função inicializaSD
 //Inicializa a comunicação com o módulo leitor de cartão SD e certifica-se que consegue escrever dados para o cartão.
 
-void inicializaSD(void)
+String inicializaSD(void)
 {
   String nome = "Teste_0";                                  //Nome base do ficheiro
   int numero = 0;
+  File ficheiro;
   
   pinMode(cardDetect, INPUT);                               //Bloqueia o Pino CardDetect do cartão SD no modo Input.
   
@@ -145,7 +144,7 @@ void inicializaSD(void)
             
     enviaLora("Incialização Falhada! - A tentar outra vez");
     inicializaSD();
-    return; 
+    return nome; 
        
    }
    
@@ -171,6 +170,25 @@ void inicializaSD(void)
     
   enviaLora("SD inicializado com Sucesso!");
   delay(1000);
+  return nome;
+  
+}
+
+//Função GuardaSD
+//Guarda os dados para o cartão SD
+void guardaSD(String a_guardar)
+{
+  File ficheiro;
+  
+  if(digitalRead(cardDetect))
+  {
+    ficheiro = SD.open(nome_ficheiro, FILE_WRITE);
+    if(ficheiro)
+    {
+      ficheiro.println(a_guardar);
+      ficheiro.close();
+    }
+  }
   
 }
 
@@ -189,7 +207,7 @@ void setup()
 {
   inicializaAcel();
   inicializaLora_gps();
-  
+  nome_ficheiro = inicializaSD();
 }
 
 
@@ -205,6 +223,7 @@ void loop()
   double lati = 0.0000000;
   double longi = 0.0000000;
   double altitudeGps = 0.0000000;
+  String leitura;
   /*//Valores Altimetro
   //float alt_pressao;
   //Valores BMP
@@ -219,8 +238,13 @@ void loop()
   gpsReadVals(&lati, &longi, &altitudeGps);
   //Eliminar ruido, valores depois de serem filtrados pela forma canonica de kalman
 
-  //valores guardados no cartao SD
-  //guardaSD (AcXf, AcYf, AcZf, lati, longi, altitudeGps); //alterar consoante o que for utilizado (tempBMP, pressBMP, altBMP; alt_pressao)
+  
+  leitura = String(AcXf, 5 ) + " " + String(AcYf, 5) + " " + String(AcZf,5) + " " + String(lati, 5) + " " + String(longi, 5) + " " + String(altitudeGps, 5) ; //Compila os dados numa só string
+  
+  guardaSD(leitura);                                       //Guarda os dados no cartão SD
+  enviaLora(leitura);                                      // Envia os dados para o Lora
+  
+  
 
 
   /*Verifica se a duração do tempo de voo do rocket é superior ao período estimado*/
