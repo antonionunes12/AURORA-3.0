@@ -9,6 +9,7 @@
   int ejecao = 0;
   int counter = 0;
   int counter_acel = 0;
+  int take_off = 0;
 /*//caso seja usado o altimetro
   unsigned long last_altitude=9999.0000000;
   unsigned long current_altitude=0;
@@ -20,12 +21,15 @@
 
 
 //Calcula o modulo da aceleração 
-//return: 1 se modulo maior que 1, 0 se modulo inferior a 1     
+//return: 1 se modulo maior que 3, 0 se modulo inferior a 3     
 int accelModule(float AcXf, float AcYf, float AcZf) {
-  if (sqrt(pow(AcXf,2)+pow(AcYf,2)+pow(AcZf,2)) > 1) {
-    return 1; }
+  if (sqrt(pow(AcXf,2)+pow(AcYf,2)+pow(AcZf,2)) > 3) {
+    take_off++;
+  }
   else {
-    return 0; } 
+    take_off=0; 
+  } 
+  return take_off;
 }
 
 
@@ -66,7 +70,7 @@ void loop()
   /*Verifica se a duração do tempo de voo do rocket é superior ao período estimado*/
   int flagMod = accelModule(AcXf, AcYf, AcZf);
 
-  if(flagMod == 1  && starttime==0 && counter==0) {
+  if(flagMod == 10  && starttime==0 && counter==0) {
     starttime=1;
     counter=1; 
   }
