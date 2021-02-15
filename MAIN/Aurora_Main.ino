@@ -8,6 +8,7 @@ unsigned long starttime=0;
 int ejecao = 0;
 int counter = 0;
 int counter_acel = 0;
+int take_off = 0;
 String nome_ficheiro;
 
 //Pin Comunicação
@@ -68,7 +69,7 @@ void loop()
   /*Verifica se a duração do tempo de voo do rocket é superior ao período estimado*/
   int flagMod = accelModule(AcXf, AcYf, AcZf);
 
-  if(flagMod == 1  && starttime==0 && counter==0) {
+  if(flagMod == 10  && starttime==0 && counter==0) {
     starttime=1;
     counter=1; 
   }
