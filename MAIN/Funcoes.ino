@@ -166,7 +166,7 @@ void get_altitude(float * Altitude)
 
 //Calcula o modulo da aceleração 
 //return: take_off, instantes seguidos em que o modulo dos paramentros do acelerometro é maior que 3    
-int accelModule(float AcXf, float AcYf, float AcZf) {
+int accelModule(float AcXf, float AcYf, float AcZf) { //pode-se usar apenas um dos eixos do acelerometro
   if (sqrt(pow(AcXf,2)+pow(AcYf,2)+pow(AcZf,2)) > 3) {
     take_off++;
   }
