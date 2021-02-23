@@ -8,15 +8,26 @@ unsigned long starttime=0;
 int ejecao = 0;
 int counter = 0;
 int counter_acel = 0;
-int take_off = 0;
 String nome_ficheiro;
-//Editei a partir daqui
+//Valores Acel
+float AcXf = 0.00;
+float AcYf = 0.00;
+float AcZf = 0.00;
+//GPS
+double lati = 0.0000000;
+double longi = 0.0000000;
+double altitudeGps = 0.0000000;
+//Altimetro
+float altitude_medida;
+String leitura;
 float m=12,m0=8;
 float t = millis();
-float v=0, h=0;
+float v=0, h=0, P = 0;
 float delta;
 float mfr;
-//Acabei aqui ( agr vou para o loop() )
+float acel_vert;
+float acel_corrigida;
+
 
 //Pin Comunicação
 const int sendPin = 10; 
@@ -30,30 +41,58 @@ void setup()
   inicializaAcel();
   inicializaLora_gps();
   nome_ficheiro = inicializaSD();
+  while(1)                                        //Ciclo de StandBy
+  {
+    if(loraS.available())
+    {
+      if(loraS.readString() == "Launch Mode")
+      {
+        guardaSD("Entrei em Launch Mode!");
+        enviaLora("Entrei em Launch Mode!");
+        break;
+      }
+    }
+  getAcel (&AcXf, &AcYf, &AcZf);
+  //Valores de altitude longitude e latitude 
+  gpsReadVals(&lati, &longi, &altitudeGps);
+  //Obtem o valor da altitude
+  get_altitude(&altitude_medida);  
+  
+  leitura = String(AcXf, 5 ) + " " + String(AcYf, 5) + " " + String(AcZf,5) + " " + String(lati, 5) + " " + String(longi, 5) + " " + String(altitudeGps, 5) + " " + String(altitude_medida, 3) + " " + String(0);
+  enviaLora(leitura);  // Envia os dados para o Lora    
+  }
+  startMillis = millis();
+  while(1) // Launch Mode!
+  {    
+  getAcel (&AcXf, &AcYf, &AcZf);
+  //Valores de altitude longitude e latitude 
+ 
+  
+  if((millis() - startMillis) > Minimo_temp)
+  {
+    guardaSD("Entrei no Flight Mode!");
+    enviaLora("Entrei no Flight Mode!");
+    starttime=1;
+    counter=1; 
+    break;
+    
+  }
+  else if (accelModule( AcXf, AcYf, AcZf) == false)
+  {
+    startMillis = millis();
+  }
+  
+   gpsReadVals(&lati, &longi, &altitudeGps);
+  //Obtem o valor da altitude
+  get_altitude(&altitude_medida);
+  
+  leitura = String(AcXf, 5 ) + " " + String(AcYf, 5) + " " + String(AcZf,5) + " " + String(lati, 5) + " " + String(longi, 5) + " " + String(altitudeGps, 5) + " " + String(altitude_medida, 3) + " " + String(0);
+  enviaLora(leitura);  // Envia os dados para o Lora   
+ 
+ }
 }
-
-
 void loop() 
 {
-  float acel_vert,acel_corrigida,P=0;
-
-  //Valores Acel
-  float AcXf = 0.00;
-  float AcYf = 0.00;
-  float AcZf = 0.00;
-  //GPS
-  double lati = 0.0000000;
-  double longi = 0.0000000;
-  double altitudeGps = 0.0000000;
-  //Altimetro
-  float altitude_medida;
-  String leitura;
-  /*//Valores Altimetro
-  //float alt_pressao;
-  //Valores BMP
-  //float tempBMP = 0.00;        
-  //float pressBMP = 0.00;
-  //float altBMP = 0.00; */
 
   //Funcoes do main
   //Obter aceleracoes
@@ -78,59 +117,43 @@ void loop()
   else{       //Se ja nao houver combustivel nao ha mass flow rate e a forca do motor sera' 0
       mfr=0;
       }
-  //acel_vert = (por exemplo) (-AcXf+sin(pitch))*sin(pitch);
-  acel_corrigida = filtro(acel_vert, mfr, m, &P, v, h);
+      
+  acel_vert = (-AcXf+sin((PI/2))*sin(PI/2));
+  
+  acel_corrigida = filtro(acel_vert, mfr, m, &P, v,h);
   
   v=v+acel_corrigida*delta;
   h=h+v*delta + acel_corrigida*delta*delta;
-
- //Acabei aqui
-
-  
-  leitura = String(AcXf, 5 ) + " " + String(AcYf, 5) + " " + String(AcZf,5) + " " + String(lati, 5) + " " + String(longi, 5) + " " + String(altitudeGps, 5) + " " + String(altitude_medida, 3) ; //Compila os dados numa só string
-  
-  guardaSD(leitura);                                       //Guarda os dados no cartão SD
-  enviaLora(leitura);                                      // Envia os dados para o Lora
-  
-  
-
-
-  /*Verifica se a duração do tempo de voo do rocket é superior ao período estimado*/
-  int flagMod = accelModule(AcXf, AcYf, AcZf);
-
-  if(flagMod == 10  && starttime==0 && counter==0) {
-    starttime=1;
-    counter=1; 
-  }
+    
+  /*Verifica se a duração do tempo de voo do rocket é superior ao período estimado*//*
   if(starttime==1) {
     startMillis = millis();  //initial start time
     starttime = 0; 
-  } 
-  currentMillis = millis();
-
+  } */
   //Se ultrapassou o tempo
-  if ((currentMillis - startMillis) >= period){
+  if ( ejecao == -1)
+  {
+      if ((millis() - startMillis) >= period && ejecao == 0){
     ejecao=1;
-    startMillis = currentMillis; }
-
+    iniciar_ejecao(); 
+    }
   
-
   //Caso o rocket não atinja a altitude estimada, verificar se está no processo de descida pelos valores do acelerómetro (10 instantes de amostragem)
-  if(AcXf<0 && ejecao == 0) { //a escolha do eixo da condiçao depende de como o acelerometro estiver no circuito
+  if(v<=0 && ejecao == 0 && ( millis()- startMillis) > tempo_seguranca) { //a escolha do eixo da condiçao depende de como o acelerometro estiver no circuito
     counter_acel++;
   }
   else {
+   
     counter_acel=0;
   }
-  if(ejecao == 0 && counter_acel==10) {
-    ejecao=1;
+  if(ejecao == 0 && counter_acel== numero_amostragens_ejecao) {
+    ejecao = 1;
+    iniciar_ejecao();
   }
 
-
-  //condições de ejeção verificadas
-  if (ejecao == 1)
-  {
-    digitalWrite(sendPin, HIGH);   
-    ejecao = -1;
-  }
+  leitura = String(AcXf, 5 ) + " " + String(AcYf, 5) + " " + String(AcZf,5) + " " + String(lati, 5) + " " + String(longi, 5) + " " + String(altitudeGps, 5) + " " + String(altitude_medida, 3)+ " "+ String(v,3) ; //Compila os dados numa só string
+  
+  guardaSD(leitura);                                       //Guarda os dados no cartão SD
+  enviaLora(leitura);                                      // Envia os dados para o Lora
 }
+  }

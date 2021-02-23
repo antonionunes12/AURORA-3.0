@@ -166,23 +166,31 @@ void get_altitude(float * Altitude)
 
 //Calcula o modulo da aceleração 
 //return: take_off, instantes seguidos em que o modulo dos paramentros do acelerometro é maior que 3    
-int accelModule(float AcXf, float AcYf, float AcZf) { //pode-se usar apenas um dos eixos do acelerometro
-  if (sqrt(pow(AcXf,2)+pow(AcYf,2)+pow(AcZf,2)) > 3) {
-    take_off++;
+bool accelModule(float AcXf, float AcYf, float AcZf) { //pode-se usar apenas um dos eixos do acelerometro
+  bool take_off;
+  if (sqrt(pow(AcXf,2)+pow(AcYf,2)+pow(AcZf,2)) > Minimo_acc) {
+    take_off = true;
   }
   else {
-    take_off=0; 
+    take_off= false; 
   } 
   return take_off;
 }
+void iniciar_ejecao()
+{
+  digitalWrite(sendPin, HIGH);   //Arde o Nicrómio
+  ejecao = -1;
+}
 
+//Filtro de Kalman
+//return: altitude;
 //Filtro de Kalman
 //return: altitude;
 float filtro(float acel_vert, float mfr, float m, float* P, float v, float alt) {
   
     float aux1,aux2,aux3,densidade;
     float Ve,L,M,p0,R0,temperatura;
-    float g=9.81, A=0, C=1;
+    float g=9.81, A=0, C=1, K;
     float Fa,Fm;
     float acel_corrigida,a_prediction, P_prediction,residual;
     float Q=1, R=2500;//corrigir o R em funcao do ruido (quadrado do desvio padrao = cov)
@@ -196,11 +204,11 @@ float filtro(float acel_vert, float mfr, float m, float* P, float v, float alt) 
 
     aux1 = (p0 * M) / (R0 * (temperatura));
     aux2 = 1 - ((L * alt) / (temperatura));
-    aux3 = ((g * M) / (R0 *.L)) - 1;
+    aux3 = ((g * M) / (R0 *L)) - 1;
     densidade = aux1 * (pow(aux2,aux3)); //E' suposto ser aux2^aux3;
   
     Fm = mfr * Ve; //*sin(pitch) ou assim
-    Fa = 0.43*densidade*(*v)*(*v)* 0.017671*0.5; //0.43 era o coeficiente de drag do blimunda, mudar para Aurora III
+    Fa = 0.43*densidade*(v)*(v)* 0.017671*0.5; //0.43 era o coeficiente de drag do blimunda, mudar para Aurora III
     if (v<0)
         Fa=-Fa;
   
