@@ -75,11 +75,11 @@ void loop()
       mfr=0.5; //Corrigir este valor!
       m=m-mfr*delta;
   }
-  else{       #Se ja nao houver combustivel nao ha mass flow rate e a forca do motor sera' 0
+  else{       //Se ja nao houver combustivel nao ha mass flow rate e a forca do motor sera' 0
       mfr=0;
       }
   //acel_vert = (por exemplo) (-AcXf+sin(pitch))*sin(pitch);
-  acel_corrigida = filtro(acel_vert, mfr, m, &P, v);
+  acel_corrigida = filtro(acel_vert, mfr, m, &P, v, h);
   
   v=v+acel_corrigida*delta;
   h=h+v*delta + acel_corrigida*delta*delta;
