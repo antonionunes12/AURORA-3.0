@@ -194,9 +194,9 @@ float filtro(float acel_vert, float mfr, float m, float* P, float v) {
     R0 = 8.31447;
     temperatura = 25 + 373.15;
 
-    aux1 = (self.p0 * self.M) / (self.R0 * (self.temperatura));
-    aux2 = 1 - ((self.L * alt) / (self.temperatura));
-    aux3 = ((self.g * self.M) / (self.R0 * self.L)) - 1;
+    aux1 = (p0 * M) / (R0 * (temperatura));
+    aux2 = 1 - ((L * alt) / (temperatura));
+    aux3 = ((g * M) / (R0 *.L)) - 1;
     densidade = aux1 * (pow(aux2,aux3)); //E' suposto ser aux2^aux3;
   
     Fm = mfr * Ve; //*sin(pitch) ou assim
