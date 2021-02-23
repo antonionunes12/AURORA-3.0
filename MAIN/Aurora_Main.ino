@@ -35,6 +35,7 @@ void setup()
 
 void loop() 
 {
+  float acel_vert,acel_corrigida,P=0;
 
   //Valores Acel
   float AcXf = 0.00;
@@ -78,7 +79,10 @@ void loop()
       mfr=0;
       }
   //acel_vert = (por exemplo) (-AcXf+sin(pitch))*sin(pitch);
-  h = filtro(acel_vert, mfr, &v, m, delta, h);
+  acel_corrigida = filtro(acel_vert, mfr, m, &P, v);
+  
+  v=v+acel_corrigida*delta;
+  h=h+v*delta + acel_corrigida*delta*delta;
 
  //Acabei aqui
 
