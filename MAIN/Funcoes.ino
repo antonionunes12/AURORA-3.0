@@ -178,7 +178,7 @@ int accelModule(float AcXf, float AcYf, float AcZf) { //pode-se usar apenas um d
 
 //Filtro de Kalman
 //return: altitude;
-float filtro(float acel_vert, float mfr, float m, float* P, float v) {
+float filtro(float acel_vert, float mfr, float m, float* P, float v, float alt) {
   
     float aux1,aux2,aux3,densidade;
     float Ve,L,M,p0,R0,temperatura;
