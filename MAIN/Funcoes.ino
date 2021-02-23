@@ -206,7 +206,7 @@ float filtro(float acel_vert, float mfr, float m, float* P, float v) {
   
     a_prediction = Fm/m - Fa/m - g;
     P_prediction = A*(*P)*A + Q;
-    residual = *acel_vert - C*a_prediction;
+    residual = acel_vert - C*a_prediction;
     K = (P_prediction * C)/(C * P_prediction * C + R);
     acel_corrigida = a_prediction + K*residual;
     *P = (1 - K*C)*P_prediction; 
