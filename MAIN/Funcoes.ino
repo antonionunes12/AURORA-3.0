@@ -175,3 +175,42 @@ int accelModule(float AcXf, float AcYf, float AcZf) { //pode-se usar apenas um d
   } 
   return take_off;
 }
+
+//Filtro de Kalman
+//return: altitude;
+float filtro(float acel_vert, float mfr, float m, float delta, float* P, float v) {
+  
+    float aux1,aux2,aux3,densidade;
+    float Ve,L,M,p0,R0,temperatura;
+    float g=9.81, A=0, C=1;
+    float Fa,Fm;
+    float acel_corrigida,a_prediction, P_prediction,residual;
+    float Q=1, R=2500;//corrigir o R em funcao do ruido (quadrado do desvio padrao = cov)
+
+    Ve=1709;
+    L = 0.0065;
+    M = 0.0289654;
+    p0 = 101325;
+    R0 = 8.31447;
+    temperatura = 25 + 373.15;
+
+    aux1 = (self.p0 * self.M) / (self.R0 * (self.temperatura));
+    aux2 = 1 - ((self.L * alt) / (self.temperatura));
+    aux3 = ((self.g * self.M) / (self.R0 * self.L)) - 1;
+    densidade = aux1 * (pow(aux2,aux3)); //E' suposto ser aux2^aux3;
+  
+    Fm = mfr * Ve; //*sin(pitch) ou assim
+    Fa = 0.43*densidade*(*v)*(*v)* 0.017671*0.5; //0.43 era o coeficiente de drag do blimunda, mudar para Aurora III
+    if (v<0)
+        Fa=-Fa;
+  
+    a_prediction = Fm/m - Fa/m - g;
+    P_prediction = A*(*P)*A + Q;
+    residual = *acel_vert - C*a_prediction;
+    K = (P_prediction * C)/(C * P_prediction * C + R);
+    acel_corrigida = a_prediction + K*residual;
+    *P = (1 - K*C)*P_prediction; 
+  
+   return acel_corrigida;
+  
+}
