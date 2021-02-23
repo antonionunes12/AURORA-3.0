@@ -10,6 +10,13 @@ int counter = 0;
 int counter_acel = 0;
 int take_off = 0;
 String nome_ficheiro;
+//Editei a partir daqui
+float m=12,m0=8;
+float t = millis();
+float v=0, h=0;
+float delta;
+float mfr;
+//Acabei aqui ( agr vou para o loop() )
 
 //Pin Comunicação
 const int sendPin = 10; 
@@ -55,7 +62,25 @@ void loop()
   //Obtem o valor da altitude
   get_altitude(&altitude_medida);
   //Eliminar ruido, valores depois de serem filtrados pela forma canonica de kalman
+  
+  
+  //Aqui estou eu a editar
+  delta = millis() - t;
+  t=millis();
+  
+  if (m>m0){    //Se ainda houver combustivel (m > m0), a massa do rocket vai diminuindo
+                //'a medida em que se vai queimando o combustivel 
+            
+      mfr=0.5; //Corrigir este valor!
+      m=m-mfr*delta;
+  }
+  else{       #Se ja nao houver combustivel nao ha mass flow rate e a forca do motor sera' 0
+      mfr=0;
+      }
+  //acel_vert = (por exemplo) (-AcXf+sin(pitch))*sin(pitch);
+  h = filtro(acel_vert, mfr, &v, m, delta, h);
 
+ //Acabei aqui
 
   
   leitura = String(AcXf, 5 ) + " " + String(AcYf, 5) + " " + String(AcZf,5) + " " + String(lati, 5) + " " + String(longi, 5) + " " + String(altitudeGps, 5) + " " + String(altitude_medida, 3) ; //Compila os dados numa só string
