@@ -1,13 +1,10 @@
 #include "Aurora.h"
 
-//Inicializção variáveis ejeção (Global variables)
 unsigned long startMillis; 
-unsigned long currentMillis;
-const unsigned long period = 26800; //alterar periodo
 unsigned long starttime=0;
-int ejecao = 0;
-int counter = 0;
-int counter_acel = 0;
+byte ejecao = 0;
+byte counter = 0;
+byte counter_acel = 0;
 String nome_ficheiro;
 //Valores Acel
 float AcXf = 0.00;
@@ -27,12 +24,6 @@ float delta;
 float mfr;
 float acel_vert;
 float acel_corrigida;
-
-
-//Pin Comunicação
-const int sendPin = 10; 
-
-
 
 void setup()
 {
@@ -82,7 +73,7 @@ void setup()
     startMillis = millis();
   }
   
-   gpsReadVals(&lati, &longi, &altitudeGps);
+  gpsReadVals(&lati, &longi, &altitudeGps);
   //Obtem o valor da altitude
   get_altitude(&altitude_medida);
   
@@ -108,15 +99,16 @@ void loop()
   delta = millis() - t;
   t=millis();
   
-  if (m>m0){    //Se ainda houver combustivel (m > m0), a massa do rocket vai diminuindo
-                //'a medida em que se vai queimando o combustivel 
-            
-      mfr=0.5; //Corrigir este valor!
-      m=m-mfr*delta;
+  if (m>m0)
+  {                                                 //Se ainda houver combustivel (m > m0), a massa do rocket vai diminuindo
+      mfr=0.5;                                        //Corrigir este valor!
+      m=m-mfr*delta;                                 //'a medida em que se vai queimando o combustivel         
+     
   }
-  else{       //Se ja nao houver combustivel nao ha mass flow rate e a forca do motor sera' 0
-      mfr=0;
-      }
+  else
+  {                                   //Se ja nao houver combustivel nao ha mass flow rate e a forca do motor sera' 0
+    mfr=0;
+  }
       
   acel_vert = (-AcXf+sin((PI/2))*sin(PI/2));
   
@@ -133,20 +125,22 @@ void loop()
   //Se ultrapassou o tempo
   if ( ejecao == -1)
   {
-      if ((millis() - startMillis) >= period && ejecao == 0){
-    ejecao=1;
-    iniciar_ejecao(); 
+    if ((millis() - startMillis) >= period && ejecao == 0)
+    {
+      ejecao=1;
+      iniciar_ejecao(); 
     }
   
   //Caso o rocket não atinja a altitude estimada, verificar se está no processo de descida pelos valores do acelerómetro (10 instantes de amostragem)
-  if(v<=0 && ejecao == 0 && ( millis()- startMillis) > tempo_seguranca) { //a escolha do eixo da condiçao depende de como o acelerometro estiver no circuito
+    if(v<=0 && ejecao == 0 && ( millis()- startMillis) > tempo_seguranca) { //a escolha do eixo da condiçao depende de como o acelerometro estiver no circuito
     counter_acel++;
   }
-  else {
-   
+  else 
+  {  
     counter_acel=0;
   }
-  if(ejecao == 0 && counter_acel== numero_amostragens_ejecao) {
+  if(ejecao == 0 && counter_acel== numero_amostragens_ejecao)
+  {
     ejecao = 1;
     iniciar_ejecao();
   }

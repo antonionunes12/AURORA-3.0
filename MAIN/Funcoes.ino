@@ -83,7 +83,7 @@ void gpsReadVals (double *latitude_val, double *longitude_val, double *altitude_
 
 String inicializaSD(void)
 {
-  String nome = "Teste_0";                                  //Nome base do ficheiro
+  String nome = "Teste_0.txt";                                  //Nome base do ficheiro
   int numero = 0;
   File ficheiro;
   
@@ -106,9 +106,10 @@ String inicializaSD(void)
    
    while (SD.exists(nome))
    {
-    nome = "Teste_";
+    nome = "Teste_";    
     ++numero;
-    nome = String(nome + numero); 
+    nome = String(nome + numero);
+    nome = String (nome + ".txt");   
    }
    ficheiro = SD.open(nome, FILE_WRITE );
    if(ficheiro)

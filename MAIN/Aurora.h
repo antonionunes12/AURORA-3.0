@@ -21,10 +21,14 @@
 #define cardDetect 7
 #define chipSelect 6
 
+//Defines Ejeção
+#define sendPin 10
+
 #define Minimo_acc 2 //g's
 #define Minimo_temp 300 // milisegundos 
 #define numero_amostragens_ejecao 10 //Número de Amostragens
 #define tempo_seguranca 10000 //milisegundos
+#define period 26800// Periodo de Ejeção em Milisegundos
 
 NeoSWSerial loraS(loraRXD,loraTXD);  // RXD, TXD  Ao contrário nos dispositivos
 NeoSWSerial gpsSerial(gpsRXD,gpsTXD);
