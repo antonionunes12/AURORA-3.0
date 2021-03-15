@@ -1,87 +1,199 @@
-// Função InicializaAcel
-// Incializa as comunicações com o acelerômetro e calibra os offsets
-// O Acelarometro têm uma escala:
-// 0 = +-2G, 1 = +- 4G, 2  2 = +- 8g , 3 = +- 16g
-void inicializaAcel (void)
+
+
+/*---------------------------------------------------------------------------
+                              Inicializa BNO
+                              
+Inicia a comunicação.
+Verifica se a conecção foi bem sucedida.
+
+---------------------------------------------------------------------------*/
+
+void incializa_BNO(void)
 {
+  if (!bno.begin())
+  {
+    // Problema a detectar o BNO055... Verificar as conecções
+    Serial.print("Ooops, BNO055 nao detectado ... Verificar as coneccoes ou o endereco I2C!");
+    while (1);
+  }
   
- mpu.initialize();
- mpu.setFullScaleAccelRange(3);                       // Ajusta a escala do acelarometro para 3 
- mpu.setXAccelOffset(769);                            // Ajusta os offsets específicos ao nosso MPU
- mpu.setYAccelOffset(1115);
- mpu.setZAccelOffset(-1625);
-  
-}
-
-//Função getAcel
-//Obtem-se os dados mais recentes do acelerômetro e guarda nas variáveis respetivas.
-//Para obter os dados em g's divide-se por uma sensibilidade dependendo da escala. *ver incializaACel
-//Sensibilidades:
-//0 ±2g 16384 LSB/g
-//1 ±4g 8192 LSB/g
-//2 ±8g 4096 LSB/g
-//3 ±16g 2048 LSB/g
-
- void getAcel (float *AcXf, float *AcYf, float *AcZf )
-{
-   
-  *AcXf = mpu.getAccelerationX() / 2048.0;
-  *AcYf = mpu.getAccelerationY() / 2048.0;
-  *AcZf = mpu.getAccelerationZ() / 2048.0;
-    
-}
-//Função inicializaLora_gp 
-//Inicia a comunicção entre o arduino, o Lora e o gps
-//Envia uma mensagem de Teste
-
-void inicializaLora_gps(void)
-{
-  loraS.begin(9600);
-  pinMode(loraaux, INPUT);
-  gpsSerial.begin(9600);
-  enviaLora("Comunicações OK");
   delay(1000);
 }
 
-//Função inicializaLora_gp 
-//Ordena o Lora a enviar o que está na string a_enviar
-void enviaLora(String a_enviar)
+
+
+/*---------------------------------------------------------------------------
+                         Retira Dados da Aceleração
+                         
+Obtem os valores da aceleração para os eixos X, Y e Z.
+Guarda os valoes.
+
+---------------------------------------------------------------------------*/
+
+void retira_dados_acc(sensors_event_t* event, double* a_x, double* a_y, double *a_z) 
 {
-  if(digitalRead(loraaux) != 0)      //define (pin 4)                   
+    *a_x = event->acceleration.x;
+    *a_y= event->acceleration.y;
+    *a_z= event->acceleration.z;
+}
+
+
+
+/*---------------------------------------------------------------------------
+                         Retira Dados da Rotação
+                         
+Obtem os valores da rotação para os eixos X, Y e Z.
+Guarda os valoes.
+
+---------------------------------------------------------------------------*/
+
+void retira_dados_rota(sensors_event_t* event, double* rot_x, double* rot_y, double *rot_z) 
+{
+    *rot_x = event->orientation.x;
+    *rot_y = event->orientation.y;
+    *rot_z = event->orientation.z;
+}
+
+
+
+/*---------------------------------------------------------------------------
+                         Faz Leitura do BNO
+                         
+Le os valores da aceleração e da rotação obtidos pelo BNO.
+Actualiza os valores.
+
+---------------------------------------------------------------------------*/
+
+void faz_leitura_BNO(sensors_event_t* accel_data, sensors_event_t* rot_data)
+{
+  
+ bno.getEvent(&accelerometerData, Adafruit_BNO055::VECTOR_ACCELEROMETER);
+ bno.getEvent(&orientationData, Adafruit_BNO055::VECTOR_EULER);
+  
+}
+
+
+
+/*---------------------------------------------------------------------------
+                         Inicializa LORA
+                         
+Inicializa a comunicação entre o Arduino e o LORA.
+Imprime uma mensagem de teste.
+
+---------------------------------------------------------------------------*/
+
+void inicializa_LORA(void)
+{
+  Serial.begin(9600);
+  pinMode(lora_aux, INPUT);
+  envia_LORA("Comunicações OK");
+  delay(1000);
+}
+
+
+
+/*---------------------------------------------------------------------------
+                           Envia LORA
+                         
+Ordena o LoRa a enviar a string: a_enviar.
+
+---------------------------------------------------------------------------*/
+
+void envia_LORA(String a_enviar)
+{
+  if(digitalRead(lora_aux) != 0)      //define (pin 4)                   
    {   
-      loraS.print(a_enviar);
+      Serial.println(a_enviar);
    }
 }
-//Função gpsReadVals
-//Obtem as coordenadas atuais e guarda-as nas variáveis respetivas
 
-void gpsReadVals (double *latitude_val, double *longitude_val, double *altitude_val)
+
+
+/*---------------------------------------------------------------------------
+                           Inicializa GPS
+                         
+Inicializa a comunicação entre o Arduino e o GPS.
+Inicializa o protocolo do GPS (GLL).
+
+---------------------------------------------------------------------------*/
+
+void inicializa_GPS (void)
 {
-  unsigned long start_time;
-  gpsSerial.listen();
-  start_time = millis();
+  envia_LORA("Estou no GPS");
+  DEV_Set_Baudrate(9600);
   
-  while(millis()-start_time <1000) /*delay of 1ms*/
-    if(gpsSerial.available() > 0)
-    {
-      gps.encode(gpsSerial.read());
+  L76X_Send_Command(SET_POS_FIX_100MS);
+  delay(500);
+  
+  L76X_Send_Command(SET_NMEA_OUTPUT);
+  delay(500);
+  
+  clearbuffer();
+}
 
-      if(gps.location.isUpdated())
+
+
+/*---------------------------------------------------------------------------
+                            Retira Dados do GPS
+                         
+Retira os dados da latitude e da longitude obtidos pelo GPS.
+
+---------------------------------------------------------------------------*/
+
+void retira_dados_GPS(double *latitude, double *longitude)
+{
+  char data[150];
+  char tratamento_lat[10] = "\0";
+  char tratamento_long[10] = "\0";
+  byte contador = 5;
+  byte avanca = 0;
+  byte copia_lat = 0;
+  byte copia_long = 0;
+  DEV_Uart_ReceiveString(data,150);
+  
+  for(;data[avanca] != '$'; ++avanca);  
+  for(contador = 5; contador > 0; ++avanca)
+  {
+    if(data[avanca] == ',')
+    {
+      --contador;
+      ++avanca;
+    }
+    switch(contador)
+    {
+      case 3:
       {
-        start_time = millis();
-        *latitude_val = gps.location.lat();
-        *longitude_val = gps.location.lng();
-        *altitude_val = gps.altitude.meters();
-        return;
+        tratamento_lat[copia_lat] = data[avanca];
+        ++copia_lat;
+        
+        break;
+      }
+      case 1:
+      {
+        tratamento_long[copia_long] = data[avanca];
+        ++copia_long;
+        
+        break;
       }
     }
-  return;
+  }
+  
+  *latitude = atof(tratamento_lat);
+  *longitude = atof(tratamento_long);
+  
+  *latitude = *latitude/100.0;
+  *longitude = *longitude/100.0;
+  
+  clearbuffer();
 }
+
+
+
 
 //Função inicializaSD
 //Inicializa a comunicação com o módulo leitor de cartão SD e certifica-se que consegue escrever dados para o cartão.
 
-String inicializaSD(void)
+String inicializa_SD(void)
 {
   String nome = "Teste_0.txt";                                  //Nome base do ficheiro
   int numero = 0;
@@ -89,17 +201,17 @@ String inicializaSD(void)
   
   pinMode(cardDetect, INPUT);                               //Bloqueia o Pino CardDetect do cartão SD no modo Input.
   
-  enviaLora("A inicializar SD");  
+  envia_LORA("A inicializar SD");  
   while(!digitalRead(cardDetect))                           //Verifica se o  cartão está inserido no leitor.
   {
-    enviaLora("ERRO - Cartão SD NÃO detetado");
+    envia_LORA("ERRO - Cartão SD NÃO detetado");
     delay(1000);
   }
   if(!SD.begin(chipSelect))
   {
             
-    enviaLora("Incialização Falhada! - A tentar outra vez");
-    inicializaSD();
+    envia_LORA("Incialização Falhada! - A tentar outra vez");
+    inicializa_SD();
     return nome; 
        
    }
@@ -121,11 +233,11 @@ String inicializaSD(void)
    {
     while(1)
     {
-    enviaLora("Erro a abrir o ficheiro");
+    envia_LORA("Erro a abrir o ficheiro");
     }
    }
     
-  enviaLora("SD inicializado com Sucesso!");
+  envia_LORA("SD inicializado com Sucesso!");
   delay(1000);
   return nome;
   
@@ -177,6 +289,7 @@ bool accelModule(float AcXf, float AcYf, float AcZf) { //pode-se usar apenas um 
   } 
   return take_off;
 }
+
 void iniciar_ejecao()
 {
   digitalWrite(sendPin, HIGH);   //Arde o Nicrómio
