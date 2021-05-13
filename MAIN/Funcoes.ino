@@ -314,7 +314,7 @@ float filtro(float acel_vert, float mfr, float m, float* P, float v, float alt) 
     M = 0.0289654;
     p0 = 101325;
     R0 = 8.31447;
-    temperatura = 25 + 373.15;
+    temperatura = 25 + 273.15;
 
     aux1 = (p0 * M) / (R0 * (temperatura));
     aux2 = 1 - ((L * alt) / (temperatura));
